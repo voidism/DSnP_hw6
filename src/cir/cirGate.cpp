@@ -38,30 +38,36 @@ CirGate::reportGate() const
    cout << "==================================================" << endl;
 }
 
-void CirGate::DFSearchByLevel(const CirGate *it,int dig_level,int total_level,bool inv) const{
-  //if((it->_fin.empty())){
+void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool inv) const{
+  if(dig_level<0)return;
   bool printed = (it->_ref==CirGate::_globalRef);
   string s = "";
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
-  cout << (printed?" (*)":"")<<endl;//(symbol name)
+  cout << ((printed&&(it->type!="PI")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
+  if(printed)return;
   it->_ref=CirGate::_globalRef;
-  
-  //}
- // else{
+  // print myself brfore children are printed!
    for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
    {
-    if(it->_fin.at(jdx)->_ref==CirGate::_globalRef) {
-      string s = "";
-      s.resize(2*(total_level - dig_level),' ');
-      cout << s << (inv?"!":"") << it->type << " " << it->gateID;
-      cout << " (*)"<<endl;//(symbol name)
-      continue;
-    }
-    DFSearchByLevel(it->_fin.at(jdx),dig_level-1,total_level,(it->_idin.at(jdx) % 2));
+    DFSearchByLevel_fanin(it->_fin.at(jdx),dig_level-1,total_level,(it->_idin.at(jdx) % 2));
    }
- // }
+  }
   
+void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_level,bool inv) const{
+  if(dig_level<0)return;
+  bool printed = (it->_ref==CirGate::_globalRef);
+  string s = "";
+  s.resize(2*(total_level - dig_level),' ');
+  cout << s << (inv?"!":"") << it->type << " " << it->gateID;
+  cout << ((printed&&(it->type!="PO")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
+  if(printed)return;
+  it->_ref=CirGate::_globalRef;
+  // print myself brfore children are printed!
+   for (int jdx = 0; jdx < (int)it->_fout.size(); jdx++)
+   {
+    DFSearchByLevel_fanout(it->_fout.at(jdx),dig_level-1,total_level,(it->_idout.at(jdx) % 2));
+   }
 }
 
 void
@@ -69,13 +75,15 @@ CirGate::reportFanin(int level) const
 {
    assert (level >= 0);
    _globalRef++;
-   DFSearchByLevel(this,level,level,false);
+   DFSearchByLevel_fanin(this,level,level,false);
 }
 
 void
 CirGate::reportFanout(int level) const
 {
    assert (level >= 0);
+   _globalRef++;
+   DFSearchByLevel_fanout(this,level,level,false);
 }
 
 PI::PI(int var,unsigned line) {

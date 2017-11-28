@@ -40,7 +40,8 @@ public:
   void reportFanin(int level) const;
   void reportFanout(int level) const;
 
-  void DFSearchByLevel(const CirGate *it,int dig_level,int total_level,bool inv) const;
+  void DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool inv) const;
+  void DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_level,bool inv) const;
 
 private:
 protected:
@@ -52,7 +53,7 @@ protected:
   vector<CirGate *> _fout;
   vector<unsigned> _idin; //fanin literal id list
   vector<CirGate *> _fin;
-  //vector<unsigned> _idout;
+  vector<unsigned> _idout;
   unsigned linenum;
   string type;
 };

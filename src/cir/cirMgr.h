@@ -48,7 +48,8 @@ public:
    void writeAag(ostream&) const;
 
    void DFSearch(CirGate*, unsigned&) const;
-   void DFSearchByLevel(CirGate*, int, int) const;
+   void DFSearch_NoPrint(CirGate*, unsigned&, stringstream& ss) const;
+   //void DFSearchByLevel_fanin(CirGate*, int, int) const;
 
   private:
 
