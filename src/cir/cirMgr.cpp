@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cstring>
 #include <sstream>
+#include <algorithm>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
@@ -149,6 +150,8 @@ parseError(CirParseError err)
 /**************************************************************/
 /*   class CirMgr member functions for circuit construction   */
 /**************************************************************/
+// unsigned CirMgr::CirGate::_globalRef = 0;
+
 bool
 CirMgr::readCircuit(const string& fileName)
 {
@@ -189,8 +192,7 @@ CirMgr::readCircuit(const string& fileName)
     // }
     // content.push_back(itm_vec);
   }
-  _Glist.push_back(new Const(0,0,0,0));
-  _Glist.push_back(new Const(0,1,0,0));
+  _Glist.push_back(new Const(0, 0));
   for (int it = 0; it < i; it++)
   {
     cout << "I:";
@@ -198,7 +200,8 @@ CirMgr::readCircuit(const string& fileName)
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
     if(!(ss_line >> lit)) { cerr << "Error13" << endl; return false;}
-    _Glist.push_back(new PI(lit / 2, lit, lineNo));
+    assert(lit % 2 == 0);
+    _Glist.push_back(new PI(lit / 2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
     lineNo++;
@@ -216,7 +219,7 @@ CirMgr::readCircuit(const string& fileName)
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
     if(!(ss_line >> lit)) { cerr << "Error14" << endl; return false;}
-    _Glist.push_back(new PO(lit / 2, lit, lineNo, ++num));
+    _Glist.push_back(new PO(/* lit / 2,  */lit, lineNo, ++num));
     //_idMap.insert(pair<unsigned, CirGate *>(num, _Glist.back()));
     _idMap[num] = _Glist.back();
     lineNo++;
@@ -231,14 +234,14 @@ CirMgr::readCircuit(const string& fileName)
     if(!(ss_line >> lit)) { cerr << "Error15" << endl; return false;}
     if(!(ss_line >> in1)) { cerr << "Error16" << endl; return false;}
     if(!(ss_line >> in2)) { cerr << "Error17" << endl; return false;}
-    _Glist.push_back(new AIG(lit / 2, lit,in1,in2, lineNo));
+    _Glist.push_back(new AIG(lit / 2, /* lit, */in1,in2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
     lineNo++;
   }
 
   for (unsigned i = 0; i < _Glist.size();i++){
-    if(_Glist.at(i)->_idin.empty()) cout<<endl;
+    if(_Glist.at(i)->_idin.empty()) cout<<_Glist.at(i)->type<<" "<< _Glist.at(i)->gateID<<endl;
     else{// if(_Glist.at(i)->_idin.size()=){
       for (unsigned j = 0; j < _Glist.at(i)->_idin.size();j++){
         std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(_Glist.at(i)->_idin.at(j)/2);
@@ -246,11 +249,11 @@ CirMgr::readCircuit(const string& fileName)
         if (tmp == _idMap.end())
         {
           if(_Glist.at(i)->_idin.at(j)==0||_Glist.at(i)->_idin.at(j)==1){
-            cpr = _Glist.at(_Glist.at(i)->_idin.at(j));
+            cpr = _Glist.at(0);
           }
           else{
-          _Glist.push_back(new Undef((_Glist.at(i)->_idin.at(j) / 2), (_Glist.at(i)->_idin.at(j)), 0));
-          cpr = _Glist.back();
+          _Glist.push_back(new Undef((_Glist.at(i)->_idin.at(j) / 2)));
+          cpr = _idMap[(_Glist.at(i)->_idin.at(j) / 2)] = _Glist.back();
           }
         }
         _Glist.at(i)->_fin.push_back(cpr);
@@ -264,7 +267,7 @@ CirMgr::readCircuit(const string& fileName)
       // cout << endl;
       cout << _Glist.at(i)->type << " " << _Glist.at(i)->gateID;
       for (unsigned u = 0; u < _Glist.at(i)->_fin.size();u++){
-        cout << " " << _Glist.at(i)->_fin.at(u)->gateID;
+        cout << " " << ((_Glist.at(i)->_idin.at(u) % 2)? "!":"")<< _Glist.at(i)->_fin.at(u)->gateID;
       }
       cout << endl;
     }
@@ -291,34 +294,53 @@ Circuit Statistics
 void
 CirMgr::printSummary() const
 {
-  unsigned PIs=0;
-  unsigned POs=0;
-  unsigned AIGs=0;
-
-  for (vector<CirGate *>::const_iterator it = _Glist.begin(); it != _Glist.end(); it++)
-  {
-    if((*it)->type == "PI") PIs++;
-    if((*it)->type == "PO") POs++;
-    if((*it)->type == "AIG") AIGs++;
-  }
   cout << "Circuit Statistics" << endl;
   cout << "==================" << endl;
-  cout << "  PI" << setw(12) << PIs << endl;
-  cout << "  PO" << setw(12) << POs<< endl;
-  cout << "  AIG" << setw(11) << AIGs << endl;
+  cout << "  PI" << setw(12) << i << endl;
+  cout << "  PO" << setw(12) << o<< endl;
+  cout << "  AIG" << setw(11) << a << endl;
   cout << "------------------" << endl;
-  cout << "  Total      162" << endl;
+  cout << "  Total"<< setw(9) << i+o+a  << endl;
 }
 
 void
 CirMgr::printNetlist() const
 {
+  unsigned prindex = 0;
+  (CirGate::_globalRef)++;
+  for (int idx = i + 1; idx < i + o + 1; idx++)
+  {
+    DFSearch(_Glist.at(idx), prindex);
+  }
 }
+
+void CirMgr::DFSearch(CirGate *it,unsigned &prindex) const{
+  if(it->_ref==CirGate::_globalRef) return;
+  if(it->type == "UNDEF") {it->_ref=CirGate::_globalRef;return;}
+  if(!(it->_fin.empty())){
+   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+   {
+    if(it->_fin.at(jdx)->_ref==CirGate::_globalRef) continue;
+    DFSearch(it->_fin.at(jdx),prindex);
+   }
+  }
+  cout << "[" << prindex << "] " << setw(4) << left << it->type << it->gateID;
+  for (unsigned u = 0; u < it->_fin.size();u++){
+        cout << " " << ((it->_fin.at(u)->type=="UNDEF")? "*":"") << ((it->_idin.at(u) % 2)? "!":"")<< it->_fin.at(u)->gateID;
+      }
+  cout << endl;//(symbol name)
+  it->_ref=CirGate::_globalRef;
+  (prindex)++;
+}
+
 
 void
 CirMgr::printPIs() const
 {
    cout << "PIs of the circuit:";
+   for (int idx = 1; idx < i+1;idx++){
+     cout << " " << _Glist.at(idx)->gateID;
+   }
    cout << endl;
 }
 
@@ -326,12 +348,51 @@ void
 CirMgr::printPOs() const
 {
    cout << "POs of the circuit:";
+   for (int idx = i+1; idx < i+o+1;idx++){
+     cout << " " << _Glist.at(idx)->gateID;
+   }
    cout << endl;
 }
 
 void
 CirMgr::printFloatGates() const
 {
+  vector<unsigned> nu;
+  vector<unsigned> wf;
+  for (int idx = 1; idx < (int)_Glist.size(); idx++)
+  {
+    if((_Glist.at(idx)->type==("AIG")||_Glist.at(idx)->type==("PI"))&&_Glist.at(idx)->_fout.empty()){
+      nu.push_back(_Glist.at(idx)->gateID);
+    }
+    if(_Glist.at(idx)->type==("AIG")||_Glist.at(idx)->type==("PO")){
+      for (unsigned u = 0; u < _Glist.at(idx)->_fin.size();u++){
+        if(_Glist.at(idx)->_fin.at(u)->type=="UNDEF"){
+          wf.push_back(_Glist.at(idx)->gateID);
+          break;
+        }
+      }
+    }
+  }
+  sort(wf.begin(), wf.end());
+  sort(nu.begin(), nu.end());
+  
+  if (wf.size() > 0)
+  {
+    cout << "Gates with floating fanin(s):";
+    for (vector<unsigned>::iterator it = wf.begin(); it != wf.end(); it++)
+    {
+      cout << " " << *it;
+    }
+    cout << endl;
+  }
+  if(nu.size()>0){
+  cout << "Gates defined but not used  :";
+  for (vector<unsigned>::iterator it = nu.begin(); it != nu.end();it++){
+    cout << " " << *it;
+  }
+  cout << endl;
+  }
+
 }
 
 void

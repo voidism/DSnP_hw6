@@ -31,7 +31,10 @@ public:
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.
-   CirGate* getGate(unsigned gid) const { return 0; }
+   CirGate* getGate(unsigned gid) const {
+     std::map<unsigned int, CirGate *>::const_iterator tmp = _idMap.find(gid);
+     return ((tmp != _idMap.end()) ? tmp->second : 0);
+   }
 
    // Member functions about circuit construction
    bool readCircuit(const string&);
@@ -44,10 +47,14 @@ public:
    void printFloatGates() const;
    void writeAag(ostream&) const;
 
+   void DFSearch(CirGate*, unsigned&) const;
+   void DFSearchByLevel(CirGate*, int, int) const;
+
   private:
-    vector<CirGate*> _Glist;
-    map<unsigned,CirGate*> _idMap;
-    int m, i, l, o, a;
+
+   vector<CirGate *> _Glist;
+   map<unsigned, CirGate *> _idMap;
+   int m, i, l, o, a;
 };
 
 #endif // CIR_MGR_H

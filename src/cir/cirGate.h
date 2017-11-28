@@ -40,25 +40,28 @@ public:
   void reportFanin(int level) const;
   void reportFanout(int level) const;
 
+  void DFSearchByLevel(const CirGate *it,int dig_level,int total_level,bool inv) const;
+
 private:
 protected:
   static unsigned _globalRef;
-  unsigned _ref; //marked number used in DFS
-  int varID;
-  int litID;
+  mutable unsigned _ref; //marked number used in DFS
+  //int varID;
+  //int litID;
   unsigned gateID;
   vector<CirGate *> _fout;
   vector<unsigned> _idin; //fanin literal id list
   vector<CirGate *> _fin;
-  vector<unsigned> _idout;
+  //vector<unsigned> _idout;
   unsigned linenum;
   string type;
 };
 
 class PI : public CirGate
 {
+  friend class CirMgr;
 public:
-  PI(int, int, unsigned);
+  PI(int, unsigned);
   ~ PI(){}
   void printGate() const {};
 };
@@ -67,16 +70,18 @@ public:
 
 class PO : public CirGate
 {
+  friend class CirMgr;
 public:
-  PO(int, int, unsigned, unsigned);
+  PO(int, unsigned, unsigned);
   ~ PO(){}
   void printGate() const {};
 };
 //const string PO::type = "PO";
 class Const : public CirGate
 {
+  friend class CirMgr;
 public:
-  Const(int, int, unsigned, unsigned);
+  Const(int, unsigned);
   ~ Const(){}
   void printGate() const {};
 };
@@ -84,17 +89,19 @@ public:
 
 class Undef : public CirGate
 {
+  friend class CirMgr;
 public:
-  Undef(int, int, unsigned);
+  Undef(int);
   ~ Undef(){}
   void printGate() const {};
 };
 //const string Undef::type = "UNDEF";
 class AIG : public CirGate
 {
+  friend class CirMgr;
 public:
-  AIG(int, int, unsigned, unsigned, unsigned);
-  AIG(int, int, unsigned);
+  AIG(int, unsigned, unsigned, unsigned);
+  AIG(int, unsigned);
   ~AIG() {}
   void printGate() const {};
 };
