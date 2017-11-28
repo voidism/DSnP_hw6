@@ -44,15 +44,25 @@ void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_le
   string s = "";
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
-  cout << ((printed&&(it->type!="PI")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(printed)return;
-  it->_ref=CirGate::_globalRef;
+  cout << ((printed&&(it->type!="PI")&&(it->type!="UNDEF")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
+  if(it->type=="PI"||it->type=="UNDEF") return;
+  if(printed) return;
+  if(dig_level==0) return;
+  if(it->_fin.size()) it->_ref=CirGate::_globalRef;
   // print myself brfore children are printed!
+  //vector<bool> answer;
    for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
    {
-    DFSearchByLevel_fanin(it->_fin.at(jdx),dig_level-1,total_level,(it->_idin.at(jdx) % 2));
-   }
-  }
+     //if(it->_fin.at(jdx)->_ref!=_globalRef)
+     DFSearchByLevel_fanin(it->_fin.at(jdx),dig_level-1,total_level,(it->_idin.at(jdx) % 2));
+     //answer.push_back(tmp);
+    }
+    // bool ret = answer[0];
+    // for(int ip=0;i<answer.size();i++){
+    //   ret = ret&&answer[ip];
+    // }
+    // return ret;
+}
   
 void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_level,bool inv) const{
   if(dig_level<0)return;
@@ -61,11 +71,12 @@ void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_l
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
   cout << ((printed&&(it->type!="PO")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(printed)return;
-  it->_ref=CirGate::_globalRef;
+  if(printed||(it->type=="PO")||(dig_level==0)){return;}
+  if(it->_fout.size()) it->_ref=CirGate::_globalRef;
   // print myself brfore children are printed!
    for (int jdx = 0; jdx < (int)it->_fout.size(); jdx++)
    {
+    //if(it->_fout.at(jdx)->_ref!=_globalRef)
     DFSearchByLevel_fanout(it->_fout.at(jdx),dig_level-1,total_level,(it->_idout.at(jdx) % 2));
    }
 }
