@@ -13,6 +13,8 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include "cirGate.h"
 
 using namespace std;
 
@@ -42,7 +44,10 @@ public:
    void printFloatGates() const;
    void writeAag(ostream&) const;
 
-private:
+  private:
+    vector<CirGate*> _Glist;
+    map<unsigned,CirGate*> _idMap;
+    int m, i, l, o, a;
 };
 
 #endif // CIR_MGR_H
