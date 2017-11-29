@@ -156,6 +156,8 @@ bool
 CirMgr::readCircuit(const string& fileName)
 {
   ifstream file;
+  lineNo = 0;
+  colNo = 0;
   file.open(fileName.c_str());
   if(!file.is_open()){ cerr << "Cannot open design \"" << fileName << "\"!!" << endl; return false;}
   string Head, M, I, L, O, A;
@@ -183,57 +185,53 @@ CirMgr::readCircuit(const string& fileName)
   vector<string> content;
   string line;
   while(getline(file, line)){
-    //stringstream ss_line(line);
     content.push_back(line);
-    // string item;
-    // vector<string> itm_vec;
-    // while(getline(ss_line, item, ' ')){
-    //   itm_vec.push_back(item.c_str());
-    // }
-    // content.push_back(itm_vec);
   }
   _Glist.push_back(new Const(0, 0));
+  _idMap[0] = _Glist.back();
+  //read PI
   for (int it = 0; it < i; it++)
   {
     //cout << "I:";
     //cout << content.at(lineNo) << endl;
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
-    if(!(ss_line >> lit)) { cerr << "Error13" << endl; return false;}
+    if(!(ss_line >> lit)) { cerr << "Error13" << endl;  return false;}
     assert(lit % 2 == 0);
     _Glist.push_back(new PI(lit / 2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
     lineNo++;
   }
-
+  //read latch
   for (int it = 0; it < l; it++)
   {
     lineNo++;
   }
   unsigned num = m;
+  //read PO
   for (int it = 0; it < o; it++)
   {
     //cout << "O:";
     //cout << content.at(lineNo) << endl;
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
-    if(!(ss_line >> lit)) { cerr << "Error14" << endl; return false;}
+    if(!(ss_line >> lit)) { cerr << "Error14" << endl;  return false;}
     _Glist.push_back(new PO(/* lit / 2,  */lit, lineNo, ++num));
     //_idMap.insert(pair<unsigned, CirGate *>(num, _Glist.back()));
     _idMap[num] = _Glist.back();
     lineNo++;
   }
-
+  //read AIG
   for (int it = 0; it < a; it++)
   {
     //cout << "A:";
     //cout << content.at(lineNo) << endl;
     stringstream ss_line(content.at(lineNo));
     unsigned lit,in1,in2;
-    if(!(ss_line >> lit)) { cerr << "Error15" << endl; return false;}
-    if(!(ss_line >> in1)) { cerr << "Error16" << endl; return false;}
-    if(!(ss_line >> in2)) { cerr << "Error17" << endl; return false;}
+    if(!(ss_line >> lit)) { cerr << "Error15" << endl;  return false;}
+    if(!(ss_line >> in1)) { cerr << "Error16" << endl;  return false;}
+    if(!(ss_line >> in2)) { cerr << "Error17" << endl;  return false;}
     _Glist.push_back(new AIG(lit / 2, /* lit, */in1,in2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
@@ -260,23 +258,44 @@ CirMgr::readCircuit(const string& fileName)
         cpr->_fout.push_back(_Glist.at(i));
         cpr->_idout.push_back(_Glist.at(i)->gateID*2+(_Glist.at(i)->_idin.at(j) % 2));
       }
-      
-      // cout << _Glist.at(i)->type <<" "<< _Glist.at(i)->gateID;
-      // for (unsigned u = 0; u < _Glist.at(i)->_idin.size();u++){
-      //   cout << " " << _Glist.at(i)->_idin.at(u) / 2;
-      // }
-      // cout << endl;
-      //cout << _Glist.at(i)->type << " " << _Glist.at(i)->gateID;
-      // for (unsigned u = 0; u < _Glist.at(i)->_fin.size();u++){
-      //   cout << " " << ((_Glist.at(i)->_idin.at(u) % 2)? "!":"")<< _Glist.at(i)->_fin.at(u)->gateID;
-      // }
-      // cout << endl;
     }
   }
+
+
+  while(lineNo < content.size())
+  {
+    stringstream ss_line(content.at(lineNo));
+    char io;
+    unsigned id;
+    string symbolname;
+    if(!(ss_line >> io)) { cerr << "Error18" << endl;  return false;}
+    if(io == 'c') {/* c.push_back("c\n"); */ break;}
+    if(io!='i' && io!='o') { cerr << "Error19" << endl;  return false;}
+    if(!(ss_line >> id)) { cerr << "Error20" << endl;  return false;}
+    if(!(ss_line >> symbolname)) { cerr << "Error21" << endl;  return false;}
+    //std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(id);
+    //if (tmp == _idMap.end()) { cerr << "Error22 gate not found!" << endl; return false;}
+    unsigned order;// = (io == 'i' ? id + 1 : id + i );
+    if (io=='i') order=id+1;
+    else if (io=='o') order = id + i;
+    if(order > 1+i+o) { cerr << "Error24" << endl;  return false;}
+    CirGate *cpr = _Glist[order];
+    if(cpr->type != "PI" && cpr->type != "PO") 
+    { cerr << "Error23 AIG cannot be named!" << endl << cpr->type << " " <<cpr->gateID << " "\
+    << "i+o=" << i+o << " " <<"m="<<m<< lineNo \
+    << " " << id <<endl;  return false;}
+    cpr->symb = symbolname;
+    lineNo++;
+  }
+
+  /* while(lineNo < content.size())
+  {
+    stringstream ss_line(content.at(lineNo));
+    c.push_back(ss_line.str());
+    lineNo++;
+  } */
+  
   lineNo = 0;
-
-  // }
-
   return true;
 }
 
@@ -295,11 +314,11 @@ Circuit Statistics
 void
 CirMgr::printSummary() const
 {
-  cout << "Circuit Statistics" << endl;
+  cout << "\nCircuit Statistics" << endl;
   cout << "==================" << endl;
-  cout << "  PI" << setw(12) << i << endl;
-  cout << "  PO" << setw(12) << o<< endl;
-  cout << "  AIG" << setw(11) << a << endl;
+  cout << "  " << setw(7) << left << "PI" << setw(7) << right << i << endl;
+  cout << "  " << setw(7) << left << "PO" << setw(7) << right << o << endl;
+  cout << "  " << setw(7) << left << "AIG" << setw(7) << right << a << endl;
   cout << "------------------" << endl;
   cout << "  Total"<< setw(9) << i+o+a  << endl;
 }
@@ -309,6 +328,7 @@ CirMgr::printNetlist() const
 {
   unsigned prindex = 0;
   (CirGate::_globalRef)++;
+  cout << endl; 
   for (int idx = i + 1; idx < i + o + 1; idx++)
   {
     DFSearch(_Glist.at(idx), prindex);
@@ -329,7 +349,8 @@ void CirMgr::DFSearch(CirGate *it,unsigned &prindex) const{
   for (unsigned u = 0; u < it->_fin.size();u++){
         cout << " " << ((it->_fin.at(u)->type=="UNDEF")? "*":"") << ((it->_idin.at(u) % 2)? "!":"")<< it->_fin.at(u)->gateID;
       }
-  cout << endl;//(symbol name)
+  string sb = ((it->symb!="")? (" (" + it->symb + ")") : "");
+  cout << sb << endl;//(symbol name)
   it->_ref=CirGate::_globalRef;
   (prindex)++;
 }
@@ -440,4 +461,19 @@ CirMgr::writeAag(ostream& outfile) const
     outfile << _Glist.at(idx)->_idin.at(0) << endl;
   }
   outfile << s;
+  for (int idx = 1; idx < i + 1; idx++)
+  {
+    if(_Glist.at(idx)->symb!="")
+    outfile << "i" << idx-1 << " " << _Glist.at(idx)->symb << endl;
+  }
+  for (int idx = i + 1; idx < i + o + 1; idx++)
+  {
+    if(_Glist.at(idx)->symb!="")
+    outfile << "o" << idx-i-1 << " " << _Glist.at(idx)->symb << endl;
+  }
+  outfile << "c" << endl;
+  outfile << "AAG output by Chung-Yang (Ric) Huang" << endl;
+  /* for(vector<string>::const_iterator it = c.begin(); it!= c.end();it++){
+    outfile << *it << endl;
+  } */
 }

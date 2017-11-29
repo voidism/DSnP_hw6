@@ -56,6 +56,7 @@ protected:
   vector<unsigned> _idout;
   unsigned linenum;
   string type;
+  string symb = "";
 };
 
 class PI : public CirGate

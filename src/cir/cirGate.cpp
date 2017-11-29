@@ -30,7 +30,8 @@ CirGate::reportGate() const
 {
   cout << "==================================================" << endl;
   stringstream ss;
-  ss << "= " << type << "(" << gateID << ")" /*"symbol"*/ << ", line " << ((linenum==0)? 0: (linenum+1) );
+  string sb = ((symb=="")? "":"\""+symb+"\"");
+  ss << "= " << type << "(" << gateID << ")" << sb << ", line " << ((linenum==0)? 0: (linenum+1) );
   string s = ss.str();
    s.resize(49, ' ');
    s += "=\n";
@@ -71,7 +72,7 @@ void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_l
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
   cout << ((printed&&(it->type!="PO")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(printed||(it->type=="PO")||(dig_level==0)){return;}
+  if(printed||(it->type=="PO")||(it->type=="UNDEF")||(dig_level==0)){return;}
   if(it->_fout.size()) it->_ref=CirGate::_globalRef;
   // print myself brfore children are printed!
    for (int jdx = 0; jdx < (int)it->_fout.size(); jdx++)
