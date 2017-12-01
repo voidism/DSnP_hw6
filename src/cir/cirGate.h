@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <set>
 #include "cirDef.h"
 
 using namespace std;
@@ -31,6 +32,7 @@ public:
   virtual ~CirGate() {}
 
   // Basic access methods
+  unsigned getID() { return gateID; }
   string getTypeStr() const { return type; }
   unsigned getLineNo() const { return linenum; }
 
@@ -54,6 +56,8 @@ protected:
   vector<unsigned> _idin; //fanin literal id list
   vector<CirGate *> _fin;
   vector<unsigned> _idout;
+  vector<pair<CirGate*,bool> > _out;
+
   unsigned linenum;
   string type;
   string symb = "";

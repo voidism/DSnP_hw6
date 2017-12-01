@@ -151,6 +151,34 @@ parseError(CirParseError err)
 /*   class CirMgr member functions for circuit construction   */
 /**************************************************************/
 // unsigned CirMgr::CirGate::_globalRef = 0;
+/* void CirMgr::sortsingle(vector<CirGate*> vec){
+  for(unsigned j = vec.size()-1 ; j > 0 ;j--){
+    if(vec[j]->gateID>=vec[j-1]->gateID){
+      CirGate* tmp = vec[j];
+      vec[j] = vec[j-1];
+      vec[j-1] = tmp;
+    }
+    else break;
+  }
+} */
+// struct cmp{
+//   pair<CirGate*,bool> i1,i2;
+// }
+
+// bool CirMgr::cmp(const pair<CirGate*,bool> i1,const pair<CirGate*,bool> i2){
+//   return i1.first->gateID<i2.first->gateID;
+// }
+bool less_than (const pair<CirGate*,bool>& struct1, const pair<CirGate*,bool>& struct2)
+{
+    return (struct1.first->getID() < struct2.first->getID());
+  }
+  
+istream & ReadIntoString (std::istream & istr, std::string & str) 
+{ 
+    std::istreambuf_iterator<char> it(istr), end; 
+    std::copy(it, end, std::inserter(str, str.begin())); 
+    return istr; 
+} 
 
 bool
 CirMgr::readCircuit(const string& fileName)
@@ -162,24 +190,22 @@ CirMgr::readCircuit(const string& fileName)
   if(!file.is_open()){ cerr << "Cannot open design \"" << fileName << "\"!!" << endl; return false;}
   string Head, M, I, L, O, A;
   //int m, i, l, o, a;
+  if (file.peek() != 'a') { return parseError(EXTRA_SPACE); }
   if(!(file >> Head)) {
     cerr << "Error1" << endl;
     return false;
   }
-  if(Head!="aag") {
-    cerr << "[ERROR] Line 1: Illegal number of PIs()!!" << endl;
-    return false;
-  }
-  if(!(file >> M)) { cerr << "Error3" << endl; return false;}
-  if(!myStr2Int(M,m)) { cerr << "Error4" << endl; return false;}
-  if(!(file >> I)) { cerr << "Error5" << endl; return false;}
-  if(!myStr2Int(I,i)) { cerr << "Error6" << endl; return false;}
-  if(!(file >> L)) { cerr << "Error7" << endl; return false;}
-  if(!myStr2Int(L,l)) { cerr << "Error8" << endl; return false;}
-  if(!(file >> O)) { cerr << "Error9" << endl; return false;}
-  if(!myStr2Int(O,o)) { cerr << "Error10" << endl; return false;}
-  if(!(file >> A)) { cerr << "Error11" << endl; return false;}
-  if(!myStr2Int(A,a)) { cerr << "Error12" << endl; return false;}
+  if(Head!="aag") { return parseError(MISSING_SPACE);}
+  if(!(file >> M)) {  return parseError(MISSING_SPACE); }
+  if(!myStr2Int(M,m)) {  return parseError(MISSING_SPACE); }
+  if(!(file >> I)) {  return parseError(MISSING_SPACE); }
+  if(!myStr2Int(I,i)) {  return parseError(MISSING_SPACE); }
+  if(!(file >> L)) {  return parseError(MISSING_SPACE); }
+  if(!myStr2Int(L,l)) {  return parseError(MISSING_SPACE); }
+  if(!(file >> O)) {  return parseError(MISSING_SPACE); }
+  if(!myStr2Int(O,o)) {  return parseError(MISSING_SPACE); }
+  if(!(file >> A)) {  return parseError(MISSING_SPACE); }
+  if(!myStr2Int(A,a)) { return parseError(MISSING_SPACE); }
   //Get Miloa !!!
   lineNo++;
   vector<string> content;
@@ -190,14 +216,26 @@ CirMgr::readCircuit(const string& fileName)
   _Glist.push_back(new Const(0, 0));
   _idMap[0] = _Glist.back();
   //read PI
+  if(content.empty()){
+    cerr << "Error0" << endl;
+    return false;
+  }
   for (int it = 0; it < i; it++)
   {
     //cout << "I:";
     //cout << content.at(lineNo) << endl;
+    if(lineNo>content.size()-1) { return parseError(EXTRA_SPACE);}
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
-    if(!(ss_line >> lit)) { cerr << "Error13" << endl;  return false;}
-    assert(lit % 2 == 0);
+    if(!(ss_line >> lit)) {
+      errMsg = "Something";
+      return parseError(MISSING_NUM);
+    }
+    if (!(lit % 2 == 0)){
+    errMsg = "PI";
+    errInt = lit;
+    return parseError(CANNOT_INVERTED);
+    };
     _Glist.push_back(new PI(lit / 2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
@@ -214,9 +252,17 @@ CirMgr::readCircuit(const string& fileName)
   {
     //cout << "O:";
     //cout << content.at(lineNo) << endl;
+    if(lineNo>content.size()-1) {
+      errMsg = "PO definition";
+      return parseError(MISSING_NUM);
+    }
     stringstream ss_line(content.at(lineNo));
     unsigned lit;
-    if(!(ss_line >> lit)) { cerr << "Error14" << endl;  return false;}
+    if(!(ss_line >> lit)) {
+      errGate = _Glist[0];
+      errInt = lit;
+      return parseError(REDEF_GATE);
+    }
     _Glist.push_back(new PO(/* lit / 2,  */lit, lineNo, ++num));
     //_idMap.insert(pair<unsigned, CirGate *>(num, _Glist.back()));
     _idMap[num] = _Glist.back();
@@ -225,13 +271,15 @@ CirMgr::readCircuit(const string& fileName)
   //read AIG
   for (int it = 0; it < a; it++)
   {
-    //cout << "A:";
-    //cout << content.at(lineNo) << endl;
+   if(lineNo>content.size()-1) {
+      errMsg = "AIG definition";
+      return parseError(MISSING_NUM);
+    }
     stringstream ss_line(content.at(lineNo));
     unsigned lit,in1,in2;
-    if(!(ss_line >> lit)) { cerr << "Error15" << endl;  return false;}
-    if(!(ss_line >> in1)) { cerr << "Error16" << endl;  return false;}
-    if(!(ss_line >> in2)) { cerr << "Error17" << endl;  return false;}
+    if(!(ss_line >> lit)) { return parseError(MISSING_SPACE); }
+    if(!(ss_line >> in1)) { return parseError(MISSING_SPACE); }
+    if(!(ss_line >> in2)) { return parseError(MISSING_SPACE); }
     _Glist.push_back(new AIG(lit / 2, /* lit, */in1,in2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
@@ -257,33 +305,40 @@ CirMgr::readCircuit(const string& fileName)
         if (_Glist.at(i)->type == "UNDEF") _Glist.at(i)->type = "AIG";
         _Glist.at(i)->_fin.push_back(cpr);
 
-        // if(cpr->_fout.size()){
+        // if(cpr->_0fout.size()){
         //   if(_Glist.at(i)->gateID > cpr -> gateID){
         //   CirGate *temp = _Glist.at(i);
-        //   cpr->_fout[0] = cpr;
-        //   cpr->_fout.push_back(temp);
+        //   cpr->_0fout[0] = cpr;
+        //   cpr->_0fout.push_back(temp);
         //   }
         // }
         // else 
-
-        //cpr->_fout.push_back(_Glist.at(i));
-        cpr->_idout.push_back(_Glist.at(i)->gateID*2+(_Glist.at(i)->_idin.at(j) % 2));
+        cpr->_out.push_back(make_pair(_Glist.at(i),(bool)(_Glist.at(i)->_idin.at(j) % 2)));
+        //cpr->_0fout.push_back(_Glist.at(i));
+        //sortsingle(cpr->_0fout);
+        //cpr->_idout.push_back(_Glist.at(i)->gateID*2+(_Glist.at(i)->_idin.at(j) % 2));
+        //sortsingleint(cpr->_idout);
       }
     }
   }
-
   for (unsigned i = 0; i < _Glist.size();i++){
-    if(_Glist.at(i)->_idout.empty()) {}//cout<<_Glist.at(i)->type<<" "<< _Glist.at(i)->gateID<<endl;
-    else{
-        sort(_Glist.at(i)->_idout.begin(),_Glist.at(i)->_idout.end());
-        for (unsigned j = 0; j < _Glist.at(i)->_idout.size();j++){
-        std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(_Glist.at(i)->_idout.at(j)/2);
-        CirGate *cpr = tmp->second;
-        if (tmp != _idMap.end())
-        {_Glist.at(i)->_fout.push_back(cpr);}
-        }
-    }
+        //insertSort(_Glist.at(i)->_out)
+        sort(_Glist.at(i)->_out.begin(), _Glist.at(i)->_out.end(), less_than);;
   }
+
+  // for (unsigned i = 0; i < _Glist.size();i++){
+  //   if(_Glist.at(i)->_idout.empty()) {}//cout<<_Glist.at(i)->type<<" "<< _Glist.at(i)->gateID<<endl;
+  //   else{
+  //       sort(_Glist.at(i)->_idout.begin(),_Glist.at(i)->_idout.end());
+  //       sort(_Glist.at(i)->_0fout.begin(),_Glist.at(i)->_0fout.end(),CirGate::operator >);
+  //       for (unsigned j = 0; j < _Glist.at(i)->_idout.size();j++){
+  //       std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(_Glist.at(i)->_idout.at(j)/2);
+  //       CirGate *cpr = tmp->second;
+  //       if (tmp != _idMap.end())
+  //       {_Glist.at(i)->_0fout.push_back(cpr);}
+  //       }
+  //   }
+  // }
 
 
   while(lineNo < content.size())
@@ -292,22 +347,52 @@ CirMgr::readCircuit(const string& fileName)
     char io;
     unsigned id;
     string symbolname;
-    if(!(ss_line >> io)) { cerr << "Error18" << endl;  return false;}
+    if(!(ss_line >> io)) { return parseError(EXTRA_SPACE);}
     if(io == 'c') {/* c.push_back("c\n"); */ break;}
-    if(io!='i' && io!='o') { cerr << "Error19" << endl;  return false;}
-    if(!(ss_line >> id)) { cerr << "Error20" << endl;  return false;}
-    if(!(ss_line >> symbolname)) { cerr << "Error21" << endl;  return false;}
+    if(io!='i' && io!='o') { return parseError(EXTRA_SPACE);}
+    if (ss_line.peek() == ' ' || ss_line.peek() == '\t') { return parseError(EXTRA_SPACE); }
+    if(!(ss_line >> id)) {
+      errMsg = "symbol index(a)";
+      return parseError(ILLEGAL_NUM);
+    }
+    //if(!(ss_line >> symbolname)) { cerr << "Error21" << endl;  return false;}
+    ss_line.seekg(1,ios::cur);
+    if(ss_line.peek() == EOF){
+      errMsg = "symbolic name";
+      return parseError(MISSING_IDENTIFIER);
+    }
+    ReadIntoString(ss_line, symbolname);
     //std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(id);
     //if (tmp == _idMap.end()) { cerr << "Error22 gate not found!" << endl; return false;}
     unsigned order;// = (io == 'i' ? id + 1 : id + i );
-    if (io=='i') order=id+1;
-    else if (io=='o') order = id + i;
-    if(order > 1+i+o) { cerr << "Error24" << endl;  return false;}
+    if (io=='i') {
+      order = id + 1;
+     if((int)id>i) {
+       errMsg = "PI index";
+       errInt = id;
+       return parseError(NUM_TOO_BIG);
+     }
+    }
+    else if (io=='o') {
+      order = id + i + 1;
+      if((int)id>o) {
+       errMsg = "PO index";
+       errInt = id;
+       return parseError(NUM_TOO_BIG);
+     }
+    }
+    if((int)order > 1+i+o) { cerr << "Error24" << endl;  return false;}
     CirGate *cpr = _Glist[order];
     if(cpr->type != "PI" && cpr->type != "PO") 
     { cerr << "Error23 AIG cannot be named!" << endl << cpr->type << " " <<cpr->gateID << " "\
     << "i+o=" << i+o << " " <<"m="<<m<< lineNo \
     << " " << id <<endl;  return false;}
+    //cout << "peek!!" << ss_line.peek() << endl;
+    if(cpr->symb != "") {
+      errMsg = io;
+      errInt = id;
+      return parseError(REDEF_SYMBOLIC_NAME);
+    }
     cpr->symb = symbolname;
     lineNo++;
   }
@@ -322,6 +407,7 @@ CirMgr::readCircuit(const string& fileName)
   lineNo = 0;
   return true;
 }
+
 
 /**********************************************************/
 /*   class CirMgr member functions for circuit printing   */
@@ -407,7 +493,7 @@ CirMgr::printFloatGates() const
   vector<unsigned> wf;
   for (int idx = 1; idx < (int)_Glist.size(); idx++)
   {
-    if((_Glist.at(idx)->type==("AIG")||_Glist.at(idx)->type==("PI"))&&_Glist.at(idx)->_fout.empty()){
+    if((_Glist.at(idx)->type==("AIG")||_Glist.at(idx)->type==("PI"))&&_Glist.at(idx)->_out.empty()){
       nu.push_back(_Glist.at(idx)->gateID);
     }
     if(_Glist.at(idx)->type==("AIG")||_Glist.at(idx)->type==("PO")){

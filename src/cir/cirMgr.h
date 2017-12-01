@@ -60,7 +60,11 @@ public:
   void DFSearch(CirGate *, unsigned &) const;
   void DFSearch_NoPrint(CirGate *, unsigned &, stringstream &ss) const;
   //void DFSearchByLevel_fanin(CirGate*, int, int) const;
-
+  //void sortsingle(vector<CirGate*>);
+  //void sortsingleint(vector<unsigned>);
+  void insertSort(vector<pair<CirGate*,bool>>&);
+  //bool cmp(const pair<CirGate*,bool> i1, const pair<CirGate*,bool> i2);
+  
 private:
   vector<CirGate *> _Glist;
   map<unsigned, CirGate *> _idMap;
