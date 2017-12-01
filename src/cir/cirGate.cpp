@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include <cassert>
+#include <algorithm>
 #include "cirGate.h"
 #include "cirMgr.h"
 #include "util.h"
@@ -76,9 +77,9 @@ void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_le
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
   cout << ((printed&&(it->type!="PI")&&(it->type!="UNDEF")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(it->type=="PI") return;
+  //if(it->type=="PI") return;
   if(printed) return;
-  if(dig_level==0) return;
+  //if(dig_level==0) return;
   if(it->_fin.size()) it->_ref=CirGate::_globalRef;
   // print myself brfore children are printed!
   //vector<bool> answer;
@@ -102,9 +103,10 @@ void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_l
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
   cout << ((printed&&(it->type!="PO")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(printed||(it->type=="PO")||(dig_level==0)){return;}
+  if(printed/* ||(it->type=="PO")||(dig_level==0) */){return;}
   if(it->_fout.size()) it->_ref=CirGate::_globalRef;
   // print myself brfore children are printed!
+  //::sort(it->_fout.begin(),it->_fout.end());
    for (int jdx = 0; jdx < (int)it->_fout.size(); jdx++)
    {
     //if(it->_fout.at(jdx)->_ref!=_globalRef)

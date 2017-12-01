@@ -254,16 +254,40 @@ CirMgr::readCircuit(const string& fileName)
           cpr = _idMap[(_Glist.at(i)->_idin.at(j) / 2)] = _Glist.back();
           }
         }
+        if (_Glist.at(i)->type == "UNDEF") _Glist.at(i)->type = "AIG";
         _Glist.at(i)->_fin.push_back(cpr);
-        cpr->_fout.push_back(_Glist.at(i));
+
+        // if(cpr->_fout.size()){
+        //   if(_Glist.at(i)->gateID > cpr -> gateID){
+        //   CirGate *temp = _Glist.at(i);
+        //   cpr->_fout[0] = cpr;
+        //   cpr->_fout.push_back(temp);
+        //   }
+        // }
+        // else 
+
+        //cpr->_fout.push_back(_Glist.at(i));
         cpr->_idout.push_back(_Glist.at(i)->gateID*2+(_Glist.at(i)->_idin.at(j) % 2));
       }
     }
   }
 
+  for (unsigned i = 0; i < _Glist.size();i++){
+    if(_Glist.at(i)->_idout.empty()) {}//cout<<_Glist.at(i)->type<<" "<< _Glist.at(i)->gateID<<endl;
+    else{
+        sort(_Glist.at(i)->_idout.begin(),_Glist.at(i)->_idout.end());
+        for (unsigned j = 0; j < _Glist.at(i)->_idout.size();j++){
+        std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(_Glist.at(i)->_idout.at(j)/2);
+        CirGate *cpr = tmp->second;
+        if (tmp != _idMap.end())
+        {_Glist.at(i)->_fout.push_back(cpr);}
+        }
+    }
+  }
+
 
   while(lineNo < content.size())
-  {
+  { 
     stringstream ss_line(content.at(lineNo));
     char io;
     unsigned id;
