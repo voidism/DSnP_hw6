@@ -207,6 +207,11 @@ CirMgr::readCircuit(const string& fileName)
   if(!(file >> A)) {  return parseError(MISSING_SPACE); }
   if(!myStr2Int(A,a)) { return parseError(MISSING_SPACE); }
   //Get Miloa !!!
+  if(m<i+l+a){
+    errMsg = "Number of varibles";
+    errInt = m;
+    return parseError(NUM_TOO_SMALL);
+  }
   lineNo++;
   vector<string> content;
   string line;
@@ -235,7 +240,11 @@ CirMgr::readCircuit(const string& fileName)
     errMsg = "PI";
     errInt = lit;
     return parseError(CANNOT_INVERTED);
-    };
+  }
+  if (lit == 0){
+    errInt = lit;
+    return parseError(REDEF_CONST);
+    }
     _Glist.push_back(new PI(lit / 2, lineNo));
     //_idMap.insert(pair<unsigned, CirGate *>(lit / 2, _Glist.back()));
     _idMap[lit / 2] = _Glist.back();
@@ -347,8 +356,13 @@ CirMgr::readCircuit(const string& fileName)
     char io;
     unsigned id;
     string symbolname;
+    if (ss_line.peek() == ' ' || ss_line.peek() == '\t') { return parseError(EXTRA_SPACE); }
     if(!(ss_line >> io)) { return parseError(EXTRA_SPACE);}
-    if(io == 'c') {/* c.push_back("c\n"); */ break;}
+    if(io == 'c') {
+      if(ss_line.peek()!= EOF){
+        return parseError(MISSING_NEWLINE);
+      }
+     break;}
     if(io!='i' && io!='o') { return parseError(EXTRA_SPACE);}
     if (ss_line.peek() == ' ' || ss_line.peek() == '\t') { return parseError(EXTRA_SPACE); }
     if(!(ss_line >> id)) {
