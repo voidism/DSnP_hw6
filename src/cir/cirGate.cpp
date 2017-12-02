@@ -80,7 +80,8 @@ void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_le
   //if(it->type=="PI") return;
   if(printed) return;
   //if(dig_level==0) return;
-  if(it->_fin.size()) it->_ref=CirGate::_globalRef;
+  if(!it->_fin.empty()&&dig_level!=0) it->_ref=CirGate::_globalRef;
+  else return;
   // print myself brfore children are printed!
   //vector<bool> answer;
    for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
@@ -105,8 +106,8 @@ void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_l
   s.resize(2*(total_level - dig_level),' ');
   cout << s << (inv?"!":"") << it->type << " " << it->gateID;
   cout << ((printed&&(it->type!="PO")&&(dig_level!=0))?" (*)":"")<<endl;//(symbol name)
-  if(printed/* ||(it->type=="PO")||(dig_level==0) */){return;}
-  if(!it->_out.empty()) it->_ref=CirGate::_globalRef;
+  if(printed){return;}
+  if(!it->_out.empty()&&dig_level!=0) it->_ref=CirGate::_globalRef;
   else return;
   // print myself brfore children are printed!
   //sort(it->_0fout.begin(),it->_0fout.end());
